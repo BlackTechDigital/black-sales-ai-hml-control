@@ -1,0 +1,51 @@
+
+name: Validar Black Sales AI HML
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Obter branch de homologacao
+        uses: actions/checkout@v4
+        with:
+          repository: BlackTechDigital/black-sales-ai
+          ref: codex/private-homologation
+          persist-credentials: false
+
+      - name: Conferir commit aprovado
+        run: |
+          test "$(git rev-parse HEAD)" = \
+            "565d2eb8256d9b8399bb9bb628bf7171738587e4"
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run check
+
+      - name: Preparar Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Testar protecao no navegador
+        run: npm run test:e2e -- tests/e2e/homolog-access.spec.ts
+
+      - name: Validar Worker sem publicar
+        env:
+          XDG_CONFIG_HOME: ${{ runner.temp }}/wrangler-hml
+          WRANGLER_SEND_METRICS: "false"
+        run: |
+          mkdir -p "$XDG_CONFIG_HOME/.wrangler"
+          npx --no-install wrangler deploy \
+            --config wrangler.homolog.json \
+            --dry-run
