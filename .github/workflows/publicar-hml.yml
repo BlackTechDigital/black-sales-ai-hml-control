@@ -1,0 +1,83 @@
+name: Primeira publicacao privada HML
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmacao:
+        description: "Digite PUBLICAR-HML-SEM-URL para confirmar"
+        required: true
+        type: string
+      confirmar_sem_url:
+        description: "Confirmo a primeira publicacao sem URL publica e sem Supabase/IA"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: black-sales-ai-hml-first-publication
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Obter o controle desta execucao
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          path: control
+          persist-credentials: false
+
+      - name: Preparar Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.19.0
+
+      - name: Exigir confirmacoes e contexto manual
+        env:
+          HML_CONFIRMATION: ${{ inputs.confirmacao }}
+          HML_ACKNOWLEDGED: ${{ inputs.confirmar_sem_url }}
+        run: node control/scripts/publish-hml.mjs confirm
+
+      - name: Obter exclusivamente o commit aprovado da aplicacao
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: BlackTechDigital/black-sales-ai
+          ref: 565d2eb8256d9b8399bb9bb628bf7171738587e4
+          path: source
+          persist-credentials: false
+
+      - name: Testar as travas sem credenciais ou Cloudflare
+        env:
+          HML_TEST_SOURCE: ${{ github.workspace }}/source
+        run: node --test control/tests/publish-hml.test.mjs
+
+      - name: Conferir branch, commit e configuracao privada
+        run: node control/scripts/publish-hml.mjs validate source
+
+      - name: Compilar a aplicacao aprovada
+        working-directory: source
+        run: npm ci && npm run build
+
+      - name: Validar o pacote sem upload
+        working-directory: source
+        env:
+          XDG_CONFIG_HOME: ${{ runner.temp }}/wrangler-hml
+          WRANGLER_SEND_METRICS: "false"
+        run: |
+          mkdir -p "$XDG_CONFIG_HOME/.wrangler"
+          npx --no-install wrangler deploy --config wrangler.homolog.json --dry-run
+
+      - name: Publicar uma unica vez e conferir ausencia de URLs publicas
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          HML_CONFIRMATION: ${{ inputs.confirmacao }}
+          HML_ACKNOWLEDGED: ${{ inputs.confirmar_sem_url }}
+          XDG_CONFIG_HOME: ${{ runner.temp }}/wrangler-hml
+          WRANGLER_SEND_METRICS: "false"
+        run: node control/scripts/publish-hml.mjs publish source
