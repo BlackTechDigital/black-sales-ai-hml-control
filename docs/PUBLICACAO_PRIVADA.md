@@ -92,7 +92,7 @@ Após a execução autorizada, confira:
 3. Em **Settings → Domains & Routes**, confirme ausência de rotas/domínios públicos, workers.dev desativado e Preview URLs desativadas. Não habilite nenhum endereço para tentar abrir a aplicação.
 4. Em **Variables & Secrets**, confirme somente os bindings esperados; não há Supabase, IA nem Basic configurados por esse fluxo.
 
-Sem endereço público, ainda não há um site para abrir no navegador. Isso é intencional. Uma etapa posterior, separadamente autorizada, deverá cadastrar `HOMOLOG_BASIC_AUTH` como Secret de runtime e somente depois planejar a ativação HTTPS. Seu formato é usuário ASCII de 1–64 caracteres, dois-pontos e senha aleatória exclusiva de 32–128 caracteres ASCII visíveis sem espaços; não reutilize senha Supabase ou fixtures públicas dos testes. A configuração do Supabase e a ativação de IA ficam fora desta missão.
+Sem endereço público, ainda não há um site para abrir no navegador. Isso é intencional. Uma etapa posterior, separadamente autorizada, deverá cadastrar `HOMOLOG_BASIC_AUTH` como Secret de runtime e somente depois planejar a ativação HTTPS. usuário no formato [A-Za-z0-9][A-Za-z0-9._-]{0,63}, dois-pontos e senha aleatória exclusiva de 32–128 caracteres ASCII visíveis sem espaços; não reutilize senha Supabase ou fixtures públicas dos testes. A configuração do Supabase e a ativação de IA ficam fora desta missão.
 
 Se o upload falhar ou a verificação final não confirmar o estado privado, o job falha, não tenta novamente e não apaga recursos automaticamente. Uma falha após upload pode deixar um Worker criado. Confira o painel antes de qualquer nova ação: uma segunda execução será bloqueada se encontrar o Worker. Não contorne a trava nem habilite URLs para resolver erro de configuração.
 
